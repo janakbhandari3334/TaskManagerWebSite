@@ -1,76 +1,80 @@
 # TaskManagerWebSite
-from flask import Flask, render_template, request, redirect, session
-import sqlite3
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
 
-app = Flask(__name__)
-app.secret_key = "secretkey"
+<h2>Your Tasks</h2>
 
-def get_db():
-    return sqlite3.connect("database.db")
+<form method="post">
+<input name="task" placeholder="New Task" required>
+<button>Add Task</button>
+</form>
 
-@app.route("/", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        email = request.form["email"]
-        password = request.form["password"]
+<ul>
+{% for task in tasks %}
+<li>
+{{ task[1] }}
+<a href="/delete/{{ task[0] }}">❌</a>
+</li>
+{% endfor %}
+</ul>
 
-        db = get_db()
-        cur = db.cursor()
-        cur.execute("SELECT * FROM users WHERE email=? AND password=?", (email, password))
-        user = cur.fetchone()
+<a href="/logout">Logout</a>
 
-        if user:
-            session["user_id"] = user[0]
-            return redirect("/dashboard")
-    return render_template("login.html")
+</body>
+</html>
 
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        name = request.form["name"]
-        email = request.form["email"]
-        password = request.form["password"]
 
-        db = get_db()
-        cur = db.cursor()
-        cur.execute("INSERT INTO users (name,email,password) VALUES (?,?,?)",
-                    (name, email, password))
-        db.commit()
-        return redirect("/")
-    return render_template("register.html")
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<h2>Login</h2>
+<form method="post">
+<input type="email" name="email" placeholder="Email" required>
+<input type="password" name="password" placeholder="Password" required>
+<button>Login</button>
+<a href="/register">Register</a>
+</form>
+</body>
+</html>
 
-@app.route("/dashboard", methods=["GET", "POST"])
-def dashboard():
-    if "user_id" not in session:
-        return redirect("/")
 
-    db = get_db()
-    cur = db.cursor()
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<h2>Register</h2>
+<form method="post">
+<input name="name" placeholder="Name" required>
+<input type="email" name="email" placeholder="Email" required>
+<input type="password" name="password" placeholder="Password" required>
+<button>Register</button>
+</form>
+</body>
+</html>
 
-    if request.method == "POST":
-        task = request.form["task"]
-        cur.execute("INSERT INTO tasks (task,user_id) VALUES (?,?)",
-                    (task, session["user_id"]))
-        db.commit()
 
-    cur.execute("SELECT * FROM tasks WHERE user_id=?", (session["user_id"],))
-    tasks = cur.fetchall()
-    return render_template("dashboard.html", tasks=tasks)
-
-@app.route("/delete/<int:id>")
-def delete(id):
-    db = get_db()
-    cur = db.cursor()
-    cur.execute("DELETE FROM tasks WHERE id=?", (id,))
-    db.commit()
-    return redirect("/dashboard")
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/")
-
-if __name__ == "__main__":
-    app.run(debug=True)
-
-    
+body{
+    font-family: Arial;
+    background:#f2f2f2;
+    text-align:center;
+}
+form{
+    background:white;
+    padding:20px;
+    width:300px;
+    margin:auto;
+}
+input,button{
+    width:100%;
+    padding:10px;
+    margin:5px 0;
+}
