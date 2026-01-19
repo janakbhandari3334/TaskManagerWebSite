@@ -1,0 +1,73 @@
+from flask import Flask, render_template, request, redirect, session
+import sqlite3
+
+app = Flask(__name__)
+app.secret_key = "secretkey"
+
+def get_db():
+    return sqlite3.connect("database.db")
+
+@app.route("/", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        email = request.form["email"]
+        password = request.form["password"]
+
+        db = get_db()
+        cur = db.cursor()
+        cur.execute("SELECT * FROM users WHERE email=? AND password=?", (email, password))
+        user = cur.fetchone()
+
+        if user:
+            session["user_id"] = user[0]
+            return redirect("/dashboard")
+    return render_template("login.html")
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        name = request.form["name"]
+        email = request.form["email"]
+        password = request.form["password"]
+
+        db = get_db()
+        cur = db.cursor()
+        cur.execute("INSERT INTO users (name,email,password) VALUES (?,?,?)",
+                    (name, email, password))
+        db.commit()
+        return redirect("/")
+    return render_template("register.html")
+
+@app.route("/dashboard", methods=["GET", "POST"])
+def dashboard():
+    if "user_id" not in session:
+        return redirect("/")
+
+    db = get_db()
+    cur = db.cursor()
+
+    if request.method == "POST":
+        task = request.form["task"]
+        cur.execute("INSERT INTO tasks (task,user_id) VALUES (?,?)",
+                    (task, session["user_id"]))
+        db.commit()
+
+    cur.execute("SELECT * FROM tasks WHERE user_id=?", (session["user_id"],))
+    tasks = cur.fetchall()
+    return render_template("dashboard.html", tasks=tasks)
+
+@app.route("/delete/<int:id>")
+def delete(id):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("DELETE FROM tasks WHERE id=?", (id,))
+    db.commit()
+    return redirect("/dashboard")
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
+
+if __name__ == "__main__":
+    app.run(debug=True)
